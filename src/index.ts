@@ -1,70 +1,92 @@
-import axios, { AxiosResponse } from 'axios'
 import BigNumber from 'bignumber.js'
-import { randomBytes } from 'crypto'
 import debug from 'debug'
-import { deriveAddress, deriveKeypair } from 'ripple-keypairs'
-import { RippleAPI } from 'ripple-lib'
 import { SettlementEngine, AccountServices } from 'ilp-settlement-core'
+import { TendermintClient } from './core/tendermint-client'
+import { RpcClient, TransactionKind } from './core/rpc-client'
+import { newRpcClient, newTendermintClient, WalletRequest, sleep } from './core/utils'
 
-const log = debug('settlement-xrp')
+const log = debug('settlement-cro')
 
-export const TESTNET_RIPPLED_URI = 'wss://s.altnet.rippletest.net:51233'
+export const TENDERMINT_HOST = 'http://localhost'
+export const TENDERMINT_PORT = 16657
+export const CLIENT_RPC_HOST = 'http://localhost'
+export const CLIENT_RPC_PORT = 16659
+export const WALLET_NAME = 'Default'
+export const WALLET_PASSPHRASE = ''
+export const CRO_DECIMAL_PLACES = 8
 
-export interface XrpEngineOpts {
-  xrpSecret?: string
-  rippledUri?: string
-  rippleClient?: RippleAPI
+export interface CroEngineOpts {
+  tendermintHost?: string
+  tendermintPort?: string
+  clientRpcHost?: string
+  clientRpcPort?: string
+  walletName?: string
+  walletPassphrase?: string
 }
 
-export interface XrpSettlementEngine extends SettlementEngine {
+export interface CroSettlementEngine extends SettlementEngine {
   handleMessage(accountId: string, message: any): Promise<any>
-  handleTransaction(tx: any): void
+  handleTransaction(tx: IncomingTransaction): void
   disconnect(): Promise<void>
 }
 
-export type ConnectXrpSettlementEngine = (services: AccountServices) => Promise<XrpSettlementEngine>
+export type ConnectCroSettlementEngine = (services: AccountServices) => Promise<CroSettlementEngine>
 
-export const createEngine = (opts: XrpEngineOpts = {}): ConnectXrpSettlementEngine => async ({
+export const createEngine = (opts: CroEngineOpts = {}): ConnectCroSettlementEngine => async ({
   sendMessage,
-  creditSettlement
+  creditSettlement,
+  trySettlement,
 }) => {
-  const xrpSecret = opts.xrpSecret || (await generateTestnetAccount())
-  const xrpAddress = secretToAddress(xrpSecret)
+  const tendermintHost = opts.tendermintHost || TENDERMINT_HOST
+  const tendermintPort = Number(opts.tendermintPort) || TENDERMINT_PORT
+  const clientRpcHost = opts.clientRpcHost || CLIENT_RPC_HOST
+  const clientRpcPort = Number(opts.clientRpcPort) || CLIENT_RPC_PORT
+  const walletRequest: WalletRequest = {
+    name: opts.walletName || WALLET_NAME,
+    passphrase: opts.walletPassphrase || WALLET_PASSPHRASE
+  }
 
-  const rippleClient: RippleAPI =
-    opts.rippleClient ||
-    new RippleAPI({
-      server: opts.rippledUri || TESTNET_RIPPLED_URI
-    })
+  const tendermintClient: TendermintClient = newTendermintClient(tendermintHost, tendermintPort)
+  const rpcClient: RpcClient = newRpcClient(clientRpcHost, clientRpcPort)
 
-  const incomingPaymentTags = new Map<number, string>() // destinationTag -> accountId
+  const incomingPaymentAddresses = new Map<string, string>() // transferAddress -> accountId
   const pendingTimers = new Set<NodeJS.Timeout>() // Set of timeout IDs to cleanup when exiting
 
-  const self: XrpSettlementEngine = {
-    async handleMessage(accountId, message) {
+  const self: CroSettlementEngine = {
+    async handleMessage(accountId, message): Promise<PaymentDetails> {
       if (message.type && message.type === 'paymentDetails') {
-        const destinationTag = randomBytes(4).readUInt32BE(0)
-        if (incomingPaymentTags.has(destinationTag)) {
-          throw new Error('Failed to generate new destination tag')
-        }
+        const transferAddress = await rpcClient.createTransferAddress(walletRequest)
+        const viewKey = await rpcClient.getViewKey(walletRequest)
 
-        incomingPaymentTags.set(destinationTag, accountId)
+        incomingPaymentAddresses.set(transferAddress, accountId)
 
         // Clean-up tags after 5 mins to prevent memory leak
-        pendingTimers.add(setTimeout(() => incomingPaymentTags.delete(destinationTag), 5 * 60000))
+        pendingTimers.add(
+          setTimeout(() => incomingPaymentAddresses.delete(transferAddress), 5 * 60000)
+        )
 
+        log(
+          `Created Transfer Address for receiving payment: transferAddress=${transferAddress} accountId=${accountId}`
+        )
         return {
-          destinationTag,
-          xrpAddress
+          transferAddress,
+          viewKey
         }
       } else {
-        throw new Error('Unknown message type')
+        throw new Error(`Unknown message type ${message.type}`)
       }
     },
 
     async settle(accountId, queuedAmount) {
-      const amount = queuedAmount.decimalPlaces(6, BigNumber.ROUND_DOWN) // Limit precision to drops (remainder will be refunded)
-      log(`Starting settlement: account=${accountId} xrp=${amount}`)
+      // Limit precision to basic unit (remainder will be refunded)
+      const croAmount = queuedAmount.decimalPlaces(8, BigNumber.ROUND_DOWN)
+      log(`Received settlement request: account=${accountId} queuedAmount=${queuedAmount}`)
+      const amount = croToBasicUnit(croAmount)
+      log(
+        `Starting settlement: account=${accountId} cro=${croAmount.toString(
+          10
+        )} cro_unit=${amount.toString(10)})`
+      )
 
       const paymentDetails = await sendMessage(accountId, {
         type: 'paymentDetails'
@@ -81,138 +103,134 @@ export const createEngine = (opts: XrpEngineOpts = {}): ConnectXrpSettlementEngi
         return new BigNumber(0)
       }
 
-      const signedTransaction = await rippleClient
-        .preparePayment(xrpAddress, {
-          source: {
-            address: xrpAddress,
-            amount: {
-              value: amount.toString(),
-              currency: 'XRP'
-            }
-          },
-          destination: {
-            address: paymentDetails.xrpAddress,
-            tag: paymentDetails.destinationTag,
-            minAmount: {
-              value: amount.toString(),
-              currency: 'XRP'
-            }
-          }
+      const transactionId = await rpcClient
+        .sendToAddress(walletRequest, paymentDetails.transferAddress, amount, [
+          paymentDetails.viewKey
+        ])
+        .catch(err => {
+          log(
+            `Failed to submit settlement transaction: Retry in 5s: account=${accountId} cro=${croAmount.toString(
+              10
+            )} cro_unit=${amount.toString(10)} transferAddress=${paymentDetails.transferAddress}`,
+            err
+          )
+
+          pendingTimers.add(setTimeout(() => trySettlement(accountId), 5000));
         })
-        .then(payment => rippleClient.sign(payment.txJSON, xrpSecret).signedTransaction)
-        .catch(err =>
-          log(`Error creating transaction to settle: account=${accountId} xrp=${amount}`, err)
-        )
-      if (!signedTransaction) {
+      if (!transactionId) {
         return new BigNumber(0)
       }
 
-      /**
-       * TODO Should this check if the transaction succeeded/for final outcome?
-       *
-       * Per https://developers.ripple.com/get-started-with-rippleapi-for-javascript.html:
-       * "The tentative result should be ignored. Transactions that succeed here can ultimately fail,
-       *  and transactions that fail here can ultimately succeed."
-       */
-      await rippleClient
-        .submit(signedTransaction)
-        .then(({ resultCode }) =>
-          resultCode === 'tesSUCCESS'
-            ? log(`Successfully submitted payment: account=${accountId} xrp=${amount}`)
-            : log(
-                `[Tentative] Payment failed: account=${accountId} xrp=${amount} code=${resultCode}`
-              )
-        )
-        .catch(err => log(`Failed to submit payment: account=${accountId} xrp=${amount}`, err))
-      return amount
+      log(
+        `Successfully submitted settlement transaction: account=${accountId} cro=${croAmount.toString(
+          10
+        )} cro_unit=${amount.toString(10)} transferAddress=${paymentDetails.transferAddress} transactionId=${transactionId}`
+      )
+      // TODO: Should check if the transaction succeeded
+      return croAmount
     },
 
-    handleTransaction(tx) {
-      // Reference: https://xrpl.org/monitor-incoming-payments-with-websocket.html (4. Read Incoming Payments)
-      if (
-        !tx.validated ||
-        tx.meta.TransactionResult !== 'tesSUCCESS' ||
-        tx.transaction.TransactionType !== 'Payment' ||
-        tx.transaction.Destination !== xrpAddress
-      ) {
-        return
-      }
-
-      /**
-       * Parse amount received from the transaction
-       * - https://xrpl.org/transaction-metadata.html#delivered-amount
-       * - https://xrpl.org/basic-data-types.html#specifying-currency-amounts
-       * - `delivered_amount` may represent a non-XRP asset, so ensure it's a string
-       */
-      const amount = new BigNumber(tx.meta.delivered_amount).shiftedBy(-6) // Convert from drops to XRP
+    handleTransaction(tx: IncomingTransaction) {
+      const amount = tx.amount
       if (!amount.isGreaterThan(0)) {
         return
       }
+      const croAmount = basicUnitToCro(amount)
 
-      const accountId = incomingPaymentTags.get(tx.transaction.DestinationTag)
+      const accountId = incomingPaymentAddresses.get(tx.address)
       if (!accountId) {
+        log(
+          `Discarding unrelated incoming transaction: address=${
+            tx.address
+          } cro=${croAmount.toString(10)} cro_unit=${amount.toString(10)} transactionId=${
+            tx.transactionId
+          }`
+        )
         return
       }
 
-      const txHash = tx.transaction.hash
-      log(`Received incoming XRP payment: xrp=${amount} account=${accountId} txHash=${txHash}`)
-      creditSettlement(accountId, amount, txHash)
+      const transactionId = tx.transactionId
+      log(
+        `Received incoming CRO payment: cro=${croAmount.toString(10)} cro_unit=${amount.toString(
+          10
+        )} account=${accountId} transactionId=${transactionId}`
+      )
+      creditSettlement(accountId, croAmount, transactionId)
     },
 
     async disconnect() {
       pendingTimers.forEach(timer => clearTimeout(timer))
-
-      await rippleClient.disconnect()
     }
   }
 
-  await rippleClient.connect()
+  const monitorWallet = async () => {
+    let lastTransactionCount = (await rpcClient.transactions(walletRequest)).length
+    const checkWalletTransactions = async () => {
+      let transactions = await rpcClient.transactions(walletRequest)
+      if (transactions.length === lastTransactionCount) {
+        return
+      }
+      log(
+        `Found ${transactions.length - lastTransactionCount} new transactions: wallet=${
+          walletRequest.name
+        }`
+      )
 
-  rippleClient.connection.on('transaction', self.handleTransaction)
-  await rippleClient.request('subscribe', {
-    accounts: [xrpAddress]
+      for (let transaction of transactions.reverse().slice(lastTransactionCount)) {
+        if (transaction.kind !== TransactionKind.Incoming) {
+          continue
+        }
+        log(`Found a new incoming transaction: wallet=${walletRequest.name}`)
+
+        for (let output of transaction.outputs) {
+          self.handleTransaction({
+            transactionId: transaction.transaction_id,
+            address: output.address,
+            amount: new BigNumber(output.value)
+          })
+        }
+      }
+
+      lastTransactionCount = transactions.length
+    }
+
+    log(`Start monitoring wallet: wallet=${walletRequest.name}`)
+    while (true) {
+      try {
+        await checkWalletTransactions()
+      } catch (err) {
+        log(`Error when checking transactions: wallet=${walletRequest.name}`)
+      }
+      await sleep(1000)
+    }
+  }
+
+  monitorWallet().catch(err => {
+    log(`Error when monitoring wallet ${walletRequest.name}`, err)
+    process.exit(1)
   })
 
   return self
 }
 
 interface PaymentDetails {
-  xrpAddress: string
-  destinationTag: number
+  transferAddress: string
+  viewKey: string
 }
-
-const MAX_UINT_32 = 4294967295
 
 export const isPaymentDetails = (o: any): o is PaymentDetails =>
-  typeof o === 'object' &&
-  typeof o.xrpAddress === 'string' &&
-  Number.isInteger(o.destinationTag) &&
-  o.destinationTag >= 0 &&
-  o.destinationTag <= MAX_UINT_32
+  typeof o === 'object' && typeof o.transferAddress === 'string' && typeof o.viewKey === 'string'
 
-interface RippleTestnetResponse {
-  account?: {
-    secret: string
-    address: string
-  }
+interface IncomingTransaction {
+  transactionId: string
+  address: string
+  amount: BigNumber
 }
 
-export const secretToAddress = (xrpSecret: string) =>
-  deriveAddress(deriveKeypair(xrpSecret).publicKey)
+const croToBasicUnit = (amount: BigNumber): BigNumber => {
+  return amount.multipliedBy(new BigNumber(10).exponentiatedBy(CRO_DECIMAL_PLACES))
+}
 
-export const generateTestnetAccount = async () =>
-  axios
-    .post('https://faucet.altnet.rippletest.net/accounts')
-    .then(async ({ data }: AxiosResponse<RippleTestnetResponse>) => {
-      if (data && data.account) {
-        const { secret, address } = data.account
-
-        // Wait for it to be included in a block
-        await new Promise(r => setTimeout(r, 5000))
-
-        log(`Generated new XRP testnet account: address=${address} secret=${secret}`)
-        return secret
-      }
-
-      throw new Error('Failed to generate new XRP testnet account')
-    })
+const basicUnitToCro = (amount: BigNumber): BigNumber => {
+  return amount.dividedBy(new BigNumber(10).exponentiatedBy(CRO_DECIMAL_PLACES))
+}
