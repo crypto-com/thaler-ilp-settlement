@@ -1,3 +1,9 @@
+<!--
+//! adapted from https://github.com/interledger-rs/interledger-rs (Interledger.rs)
+//! Copyright (c) 2018-2019 Evan Schwartz and contributors (licensed under the Apache License Version 2.0)
+//! Copyright (c) 2017-2018 Evan Schwartz (licensed under the Apache License Version 2.0)
+//! Modifications Copyright (c) 2018 - 2019, Foris Limited (licensed under the Apache License, Version 2.0)
+-->
 # Interledger with Ethereum and CRO On-Ledger Settlement
 
 > A demo that sends payments between 3 Interledger.rs nodes and settles using Ethereum transactions and CRO transactions.
@@ -5,8 +11,6 @@
 ## Overview
 
 This example shows how to configure Interledger.rs nodes and use an Ethereum network (testnet or mainnet) and the CRO devnet as settlement ledgers for payments sent between the nodes. If you are new to Ethereum, you can learn about it [here](https://www.ethereum.org/beginners/). To learn about settlement in Interledger, refer to [Peering, Clearing and Settling](https://github.com/interledger/rfcs/blob/master/0032-peering-clearing-settlement/0032-peering-clearing-settlement.md).
-
-![overview](images/overview.svg)
 
 ## Prerequisites
 
