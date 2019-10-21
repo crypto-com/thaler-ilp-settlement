@@ -1,0 +1,15 @@
+Crypto.com Interledger CRO Settlement Engine
+Copyright 2018 - 2019, Foris Limited ("Crypto.com"). 
+
+This project contains portions of code derived from the following libraries:
+
+* Interledger.rs
+ * Copyright 2018-2019 Evan Schwartz and contributors
+ * Copyright 2017-2018 Evan Schwartz
+ * License: Apache License 2.0
+ * Repository: https://github.com/interledger-rs/interledger-rs
+
+* XRP On-Ledger Settlement Engine
+ * Copyright 2019 Interledger Team
+ * License: Apache License 2.0
+ * Repository: https://github.com/interledgerjs/settlement-xrp

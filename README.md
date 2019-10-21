@@ -1,33 +1,36 @@
-# XRP On-Ledger Settlement Engine
+<!--
+//! adapted from https://github.com/interledgerjs/settlement-xrp (XRP On-Ledger Settlement Engine)
+//! Copyright Copyright (c) 2019 Interledger Team (licensed under the Apache License, Version 2.0)
+//! Modifications Copyright (c) 2018 - 2019, Foris Limited (licensed under the Apache License, Version 2.0)
+-->
+# CRO On-Ledger Settlement Engine
 
-> Settle Interledger payments using on-ledger XRP transfers
+> Settle Interledger payments using on-ledger CRO transfers
 
-[![NPM Package](https://img.shields.io/npm/v/ilp-settlement-xrp.svg?style=flat-square&logo=npm)](https://npmjs.org/package/ilp-settlement-xrp)
-[![CircleCI](https://img.shields.io/circleci/project/github/interledgerjs/settlement-xrp/master.svg?style=flat-square&logo=circleci)](https://circleci.com/gh/interledgerjs/settlement-xrp/master)
-[![Codecov](https://img.shields.io/codecov/c/github/interledgerjs/settlement-xrp/master.svg?style=flat-square&logo=codecov)](https://codecov.io/gh/interledgerjs/settlement-xrp)
 [![Prettier](https://img.shields.io/badge/code_style-prettier-brightgreen.svg?style=flat-square)](https://prettier.io/)
-[![Apache 2.0 License](https://img.shields.io/github/license/interledgerjs/settlement-xrp.svg?style=flat-square)](https://github.com/interledgerjs/settlement-xrp/blob/master/LICENSE)
+[![Apache 2.0 License](https://img.shields.io/github/license/interledgerjs/settlement-CRO.svg?style=flat-square)](https://github.com/interledgerjs/settlement-CRO/blob/master/LICENSE)
 
 ## Install
 
 ```bash
-npm i -g ilp-settlement-xrp
+npm install
+npm run build
 ```
 
 ## Run
 
 ```bash
-DEBUG=settlement* ilp-settlement-xrp
+DEBUG=settlement* npm start
 ```
 
 ## Configuration
 
 Optionally configure the settlement engine using these environment variables:
 
-- **`XRP_SECRET`**: The XRP Ledger secret to send outgoing payments and corresponding to the XRP account for receiving incoming payments.
-  - By default, a new [XRP testnet account](https://xrpl.org/xrp-test-net-faucet.html) is automatically generated with 1,000 testnet XRP.
-- **`RIPPLED_URI`**: Rippled WebSocket or JSON-RPC endpoint to submit transactions and query network state.
-  - Defaults to the Ripple testnet: `wss://s.altnet.rippletest.net:51233`. To operate on mainnet, specify a mainnet validator, such as `wss://s1.ripple.com`.
+- **`CRO_WALLET_NAME`**: The CRO wallet name
+- **`CRO_WALLET_PASSPHRASE`**: The CRO wallet passphrase
+- **`CLIENT_RPC_HOST`**: Hostname of the ClientRPC server.
+- **`CLIENT_RPC_PORT`**: Port of the ClientRPC server.
 - **`CONNECTOR_URL`**: URL of the connector's server dedicated to this settlement engine.
   - Default: `http://localhost:7771`
 - **`ENGINE_PORT`**: Port of the settlement engine server exposed to the connector (e.g. for triggering automated settlements).

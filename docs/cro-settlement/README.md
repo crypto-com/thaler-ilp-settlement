@@ -1,3 +1,9 @@
+<!--
+//! adapted from https://github.com/interledger-rs/interledger-rs (Interledger.rs)
+//! Copyright (c) 2018-2019 Evan Schwartz and contributors (licensed under the Apache License Version 2.0)
+//! Copyright (c) 2017-2018 Evan Schwartz (licensed under the Apache License Version 2.0)
+//! Modifications Copyright (c) 2018 - 2019, Foris Limited (licensed under the Apache License, Version 2.0)
+-->
 # Interledger with CRO On-Ledger Settlement
 
 > A demo that sends payments between 2 Interledger.rs nodes and settles using CRO transactions.
@@ -5,8 +11,6 @@
 ## Overview
 
 This example shows how to configure Interledger.rs nodes and use the CRO devnet as a settlement ledger for payments sent between the nodes. To learn about settlement in Interledger, refer to [Peering, Clearing and Settling](https://github.com/interledger/rfcs/blob/master/0032-peering-clearing-settlement/0032-peering-clearing-settlement.md).
-
-![overview](images/overview.svg)
 
 ## Prerequisites
 
