@@ -79,7 +79,7 @@ export const createEngine = (opts: CroEngineOpts = {}): ConnectCroSettlementEngi
 
     async settle(accountId, queuedAmount) {
       // Limit precision to basic unit (remainder will be refunded)
-      const croAmount = queuedAmount.decimalPlaces(8, BigNumber.ROUND_DOWN)
+      const croAmount = queuedAmount.decimalPlaces(CRO_DECIMAL_PLACES, BigNumber.ROUND_DOWN)
       log(`Received settlement request: account=${accountId} queuedAmount=${queuedAmount}`)
       const amount = croToBasicUnit(croAmount)
       log(
@@ -127,6 +127,8 @@ export const createEngine = (opts: CroEngineOpts = {}): ConnectCroSettlementEngi
         )} cro_unit=${amount.toString(10)} transferAddress=${paymentDetails.transferAddress} transactionId=${transactionId}`
       )
       // TODO: Should check if the transaction succeeded
+      // Broadcast succeeded does not guarantee on-chain finality
+      // Possible option: Query Tendermint for the transaction id
       return croAmount
     },
 
