@@ -8,7 +8,7 @@
 > Settle Interledger payments using on-ledger CRO transfers
 
 [![Prettier](https://img.shields.io/badge/code_style-prettier-brightgreen.svg?style=flat-square)](https://prettier.io/)
-[![Apache 2.0 License](https://img.shields.io/github/license/crypto-com/settlement-CRO.svg?style=flat-square)](https://github.com/crypto-com/settlement-CRO/blob/master/LICENSE)
+[![Apache 2.0 License](https://img.shields.io/github/license/crypto-com/settlement-cro.svg?style=flat-square)](https://github.com/crypto-com/settlement-CRO/blob/master/LICENSE)
 
 ## Install
 
