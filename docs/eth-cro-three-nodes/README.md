@@ -46,7 +46,7 @@ Then you should be able to use `npm`. To install `ganache-cli`, run `npm install
 
 ### CRO Settlement Engine
 
-Interledger.rs and settlement engines written in other languages are fully interoperable. Here, we'll use the [CRO Ledger Settlement Engine](https://github.com/interledgerjs/settlement-xrp/), which is written in TypeScript. We'll need `node` and `npm` to install and run the settlement engine. If you don't have it already, refer to [Install Node.js](#install-nodejs).
+Interledger.rs and settlement engines written in other languages are fully interoperable. Here, we'll use the [CRO Ledger Settlement Engine](https://github.com/crypto-com/settlement-cro), which is written in TypeScript. We'll need `node` and `npm` to install and run the settlement engine. If you don't have it already, refer to [Install Node.js](#install-nodejs).
 
 Install the settlement engine as follows:
 
