@@ -97,7 +97,7 @@ When you want to watch logs, use the `tail` command. You can use the command lik
 
 Because each node needs its own settlement engine, we need to launch both a settlement engine for Alice's node and another settlement engine for Bob's node.
 
-You have to setup Tendermint + chain-abci + chain-tx-enclave and setup client-rpc server in your local environment. Create two accounts with following setups:
+You have to [setup Tendermint + chain-abci + chain-tx-enclave and setup client-rpc server in your local environment](https://crypto-com.github.io/getting-started/local_full_node_development.html#local-full-node-development). Create two accounts with following setups:
 
 Default Wallet (Alice)
 - Name: Default
