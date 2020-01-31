@@ -64,7 +64,7 @@ Make sure your Redis is empty. You could run `redis-cli flushall` to clear all t
 
 ### 1. Build interledger.rs
 
-First of all, let's build interledger.rs. (This may take a couple of minutes)
+First of all, let's build interledger.rs after cloning it from [here](https://github.com/crypto-com/interledger-rs). (This may take a couple of minutes)
 
 ```bash
 cargo build --bin ilp-node --bin ilp-cli
