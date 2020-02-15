@@ -64,7 +64,7 @@ Make sure your Redis is empty. You could run `redis-cli flushall` to clear all t
 
 ### 1. Build interledger.rs
 
-First of all, let's build interledger.rs. (This may take a couple of minutes)
+First of all, let's build interledger.rs after cloning it from [here](https://github.com/crypto-com/interledger-rs). (This may take a couple of minutes)
 
 ```bash
 cargo build --bin ilp-node --bin ilp-cli
@@ -97,7 +97,7 @@ When you want to watch logs, use the `tail` command. You can use the command lik
 
 Because each node needs its own settlement engine, we need to launch both a settlement engine for Alice's node and another settlement engine for Bob's node.
 
-You have to setup Tendermint + chain-abci + chain-tx-enclave and setup client-rpc server in your local environment. Create two accounts with following setups:
+You have to [setup Tendermint + chain-abci + chain-tx-enclave and setup client-rpc server in your local environment](https://crypto-com.github.io/getting-started/local_full_node_development.html#local-full-node-development). Create two accounts with following setups:
 
 Default Wallet (Alice)
 - Name: Default
