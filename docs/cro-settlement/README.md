@@ -70,6 +70,32 @@ First of all, let's build interledger.rs after cloning it from [here](https://gi
 cargo build --bin ilp-node --bin ilp-cli
 ```
 
+#### 1.1. Nightly builds
+If you encounter error message like below
+```
+cargo build --bin ilp-node --bin ilp-cli
+error: failed to parse manifest at `$ABSOLUTE_PATH_TO_REPO/interledger-rs/crates/ilp-node/Cargo.toml`
+
+Caused by:
+  the `default-run` manifest key is unstable
+
+Caused by:
+  feature `default-run` is required
+
+this Cargo does not support nightly features, but if you
+switch to nightly channel you can add
+`cargo-features = ["default-run"]` to enable this feature
+```
+, do
+```bash
+rustup install nightly
+```
+and then to achieve building interledger.rs same as in step 1.
+```bash
+cargo +nightly build --bin ilp-node --bin ilp-cli  
+```
+
+
 ### 2. Launch Redis
 
 ```bash
