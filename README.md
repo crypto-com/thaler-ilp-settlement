@@ -1,7 +1,7 @@
 <!--
 //! adapted from https://github.com/interledgerjs/settlement-xrp (XRP On-Ledger Settlement Engine)
 //! Copyright Copyright (c) 2019 Interledger Team (licensed under the Apache License, Version 2.0)
-//! Modifications Copyright (c) 2018 - 2019, Foris Limited (licensed under the Apache License, Version 2.0)
+//! Modifications Copyright (c) 2018 - 2019 (licensed under the Apache License, Version 2.0)
 -->
 # CRO On-Ledger Settlement Engine
 
