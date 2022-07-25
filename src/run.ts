@@ -1,6 +1,6 @@
 //! adapted from https://github.com/interledgerjs/settlement-xrp (XRP On-Ledger Settlement Engine)
 //! Copyright Copyright (c) 2019 Interledger Team (licensed under the Apache License, Version 2.0)
-//! Modifications Copyright (c) 2018 - 2019 (licensed under the Apache License, Version 2.0)
+//! Modifications Copyright (c) 2018 - 2019 Crypto.com (licensed under the Apache License, Version 2.0)
 
 import { startServer, connectRedis } from 'ilp-settlement-core'
 import { createEngine } from '.'
@@ -12,7 +12,7 @@ async function run() {
   });
 
   const store = await connectRedis({
-    uri: process.env.REDIS_URI,
+    uri: process.env.REDIS_URI,, Foris Limited
     db: 1 // URI will override this
   })
 

@@ -1,6 +1,6 @@
 //! adapted from https://github.com/interledgerjs/settlement-xrp (XRP On-Ledger Settlement Engine)
 //! Copyright Copyright (c) 2019 Interledger Team (licensed under the Apache License, Version 2.0)
-//! Modifications Copyright (c) 2018 - 2019 (licensed under the Apache License, Version 2.0)
+//! Modifications Copyright (c) 2018 - 2019 Crypto.com (licensed under the Apache License, Version 2.0)
 
 import BigNumber from 'bignumber.js'
 import debug from 'debug'
