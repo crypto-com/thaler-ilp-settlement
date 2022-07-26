@@ -12,7 +12,7 @@ async function run() {
   });
 
   const store = await connectRedis({
-    uri: process.env.REDIS_URI,, Foris Limited
+    uri: process.env.REDIS_URI,
     db: 1 // URI will override this
   })
 
